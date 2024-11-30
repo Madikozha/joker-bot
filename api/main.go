@@ -14,7 +14,8 @@ import (
 var bot *tgbotapi.BotAPI
 
 func init() {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TG_TOKEN"))
+	var err error
+	bot, err = tgbotapi.NewBotAPI(os.Getenv("TG_TOKEN"))
 	if err != nil {
 		log.Fatalf("Error initializing bot: %v", err)
 	}
