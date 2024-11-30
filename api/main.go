@@ -46,6 +46,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 		bot.Send(gif)
 		fmt.Println("Sending")
+		return
 
 	} else if firstName != "ToTa" && lastName != "TatO" && (strings.HasPrefix(useRespond, "hi joker") || strings.HasSuffix(useRespond, "hi joker")) {
 		log.Printf("[%s] %s\n", update.Message.From.UserName, update.Message.Text)
@@ -54,8 +55,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 		bot.Send(gif)
 		fmt.Println("Sending")
-
+		return
 	}
+
 }
 
 func gifHandler(tgChatID int64, urlStr, caption string) *tgbotapi.AnimationConfig {
@@ -69,25 +71,7 @@ func gifHandler(tgChatID int64, urlStr, caption string) *tgbotapi.AnimationConfi
 	return &gif
 }
 
-func setWebhook() error {
-	webHookURL := "https://joker-bot-madikozhas-projects.vercel.app/"
-
-	_, err := bot.SetWebhook(tgbotapi.NewWebhook(webHookURL))
-	if err != nil {
-		log.Println("Error while setting a webHook:", err)
-		return err
-	}
-
-	log.Println("Succes setting a webHook")
-	return nil
-
-}
-
 func main() {
-	err := setWebhook()
-	if err != nil {
-		log.Fatalln("Failed to set a webhook", err)
-	}
 	http.HandleFunc("/", Handler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
