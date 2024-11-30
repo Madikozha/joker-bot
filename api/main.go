@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,47 +16,75 @@ func init() {
 	var err error
 	bot, err = tgbotapi.NewBotAPI(os.Getenv("TG_TOKEN"))
 	if err != nil {
-		log.Fatalf("Error initializing bot: %v", err)
+		log.Printf("Error initializing bot: %v", err)
+		return
 	}
 
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 }
+
 func Handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Start")
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	// Handle preflight requests
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Only handle POST requests
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
 	var update tgbotapi.Update
 	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		log.Println("Failed to decode update:", err)
+		http.Error(w, "Failed to decode update", http.StatusBadRequest)
 		return
 	}
+
 	if update.Message == nil {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
+
 	tgChatID := update.Message.Chat.ID
 	firstName := update.Message.From.FirstName
 	lastName := update.Message.From.LastName
 	useRespond := strings.ToLower(update.Message.Text)
 
-	if firstName == "ToTa" && lastName == "TatO" && (strings.HasPrefix(useRespond, "hi joker") || strings.HasSuffix(useRespond, "hi joker")) {
+	var responseGif *tgbotapi.AnimationConfig
+	var err error
+
+	if firstName == "ToTa" && lastName == "TatO" &&
+		(strings.HasPrefix(useRespond, "hi joker") || strings.HasSuffix(useRespond, "hi joker")) {
 		log.Printf("[%s] %s\n", update.Message.From.UserName, update.Message.Text)
 
-		gif := gifHandler(tgChatID, "https://i.imgur.com/Kd3hMX6.mp4", "Hi master!")
+		responseGif = gifHandler(tgChatID, "https://i.imgur.com/Kd3hMX6.mp4", "Hi master!")
 
-		bot.Send(gif)
-		fmt.Println("Sending")
-		return
-
-	} else if firstName != "ToTa" && lastName != "TatO" && (strings.HasPrefix(useRespond, "hi joker") || strings.HasSuffix(useRespond, "hi joker")) {
+	} else if firstName != "ToTa" && lastName != "TatO" &&
+		(strings.HasPrefix(useRespond, "hi joker") || strings.HasSuffix(useRespond, "hi joker")) {
 		log.Printf("[%s] %s\n", update.Message.From.UserName, update.Message.Text)
 
-		gif := gifHandler(tgChatID, "https://i.pinimg.com/originals/9f/80/73/9f807378cd83071ca8ea09e05dd03cdc.gif", "Who are you?")
-
-		bot.Send(gif)
-		fmt.Println("Sending")
-		return
+		responseGif = gifHandler(tgChatID, "https://i.pinimg.com/originals/9f/80/73/9f807378cd83071ca8ea09e05dd03cdc.gif", "Who are you?")
 	}
 
+	if responseGif != nil {
+		_, err = bot.Send(*responseGif)
+		if err != nil {
+			log.Printf("Error sending message: %v", err)
+			http.Error(w, "Failed to send message", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func gifHandler(tgChatID int64, urlStr, caption string) *tgbotapi.AnimationConfig {
@@ -69,23 +96,4 @@ func gifHandler(tgChatID int64, urlStr, caption string) *tgbotapi.AnimationConfi
 	gif.Caption = caption
 
 	return &gif
-}
-func setWebhook() error {
-	webHookURL := "https://joker-bot-madikozhas-projects.vercel.app/"
-	_, err := bot.SetWebhook(tgbotapi.NewWebhook(webHookURL))
-	if err != nil {
-		log.Println("Error while setting a webHook:", err)
-		return err
-	}
-	log.Println("Succes setting a webHook")
-	return nil
-}
-
-func main() {
-	err := setWebhook()
-	if err != nil {
-		log.Fatalln("Failed to set a webhook", err)
-	}
-	http.HandleFunc("/", Handler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
 }
