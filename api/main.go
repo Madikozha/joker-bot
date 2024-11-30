@@ -68,7 +68,25 @@ func gifHandler(tgChatID int64, urlStr, caption string) *tgbotapi.AnimationConfi
 	return &gif
 }
 
+func setWebhook() error {
+	webHookURL := "https://joker-bot-madikozhas-projects.vercel.app/"
+
+	_, err := bot.SetWebhook(tgbotapi.NewWebhook(webHookURL))
+	if err != nil {
+		log.Println("Error while setting a webHook:", err)
+		return err
+	}
+
+	log.Println("Succes setting a webHook")
+	return nil
+
+}
+
 func main() {
+	err := setWebhook()
+	if err != nil {
+		log.Fatalln("Failed to set a webhook", err)
+	}
 	http.HandleFunc("/", Handler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
