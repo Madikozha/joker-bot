@@ -1,5 +1,6 @@
 # telegram-bot
 
-**create a .venv and .env**
-**source activate**
-**pip install -r requirements.txt**
+`touch .env`
+`python -m venv .venv`
+`source activate`
+`pip install -r requirements.txt`
